@@ -1,29 +1,33 @@
 from fastapi import FastAPI
-import yfinance as yf
+import requests
 
 app = FastAPI()
 
 @app.get("/")
 def home():
-    return {"status": "AI Market Terminal Running"}
-
-@app.get("/market-data")
-def market_data():
-    dxy = yf.Ticker("DX-Y.NYB").history(period="1d").Close.iloc[-1]
-    gold = yf.Ticker("GC=F").history(period="1d").Close.iloc[-1]
-    spx = yf.Ticker("^GSPC").history(period="1d").Close.iloc[-1]
-
-    return {
-        "DXY": round(dxy, 2),
-        "Gold": round(gold, 2),
-        "S&P500": round(spx, 2)
-    }
+    return {"message": "AI Market Terminal Running"}
 
 @app.get("/signal")
-def signal():
-    dxy = yf.Ticker("DX-Y.NYB").history(period="1d").Close.iloc[-1]
+def get_signal():
+    try:
+        url = "https://api.exchangerate-api.com/v4/latest/USD"
+        data = requests.get(url).json()
 
-    if dxy < 104:
-        return {"bias": "GOLD BUY", "reason": "Weak dollar"}
-    else:
-        return {"bias": "GOLD SELL", "reason": "Strong dollar"}
+        eur = data["rates"]["EUR"]
+
+        if eur > 0.9:
+            return {
+                "bias": "GOLD BUY",
+                "reason": "USD weak"
+            }
+        else:
+            return {
+                "bias": "GOLD SELL",
+                "reason": "USD strong"
+            }
+
+    except:
+        return {
+            "bias": "NO TRADE",
+            "reason": "Error fetching data"
+        }
